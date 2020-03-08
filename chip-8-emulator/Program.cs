@@ -68,14 +68,17 @@ namespace chip_8_emulator
             Clock deltaClock = new Clock();
             DeltaTime = deltaClock.Restart();
             emu.Reset();
-            emu.LoadApp("connect4.rom");
+            emu.LoadApp("pong2.rom");
 
             while (IsOpen)
             {
                 DeltaTime = deltaClock.Restart();
                 DispatchEvents();
-
-                emu.Step();
+                for (int i = 0; i < 500 / 60; i++)
+                {
+                    emu.Step();
+                }
+                emu.UpdateTimers();
                 if (emu.drawFlag)
                 {
                     Clear(Color.Black);

@@ -317,6 +317,9 @@ namespace chip_8_emulator
                     break;
             }
 
+        }
+        public void UpdateTimers()
+        {
             // Update timers
             if (delay_timer > 0) delay_timer--;
             if (sound_timer == 1) Console.Beep();
