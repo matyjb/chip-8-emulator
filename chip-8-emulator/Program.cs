@@ -1,6 +1,7 @@
 ﻿using SFML.Graphics;
 using SFML.System;
 using System;
+using System.Linq;
 
 namespace chip_8_emulator
 {
@@ -9,7 +10,7 @@ namespace chip_8_emulator
     {
         private Time DeltaTime { get; set; }
         Emulator emu = new Emulator();
-        public Game(string title) : base(new SFML.Window.VideoMode(160, 144), title)
+        public Game(string title) : base(new SFML.Window.VideoMode(64, 32), title)
         {
             Closed += Game_Closed;
             SetFramerateLimit(60);
@@ -46,7 +47,7 @@ namespace chip_8_emulator
 
         private void DrawScreen()
         {
-            Image img = new Image(emu.screen);
+            Image img = new Image(64,32,emu.screen);
             Texture tex = new Texture(img);
             Sprite s = new Sprite(tex);
             Draw(s);
@@ -64,7 +65,7 @@ namespace chip_8_emulator
     {
         static void Main()
         {
-            Game gameWindow = new Game("Gameboy emulator");
+            Game gameWindow = new Game("Chip-8 emulator");
             gameWindow.Run();
         }
     }

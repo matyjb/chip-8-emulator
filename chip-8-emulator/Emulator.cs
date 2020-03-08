@@ -41,27 +41,19 @@ namespace chip_8_emulator
         byte delay_timer = 0;
         byte sound_timer = 0;
         // stack
-        ushort[] stack = new ushort[16];
-        ushort SP = 0;
+        //ushort[] stack = new ushort[16];
+        Stack<ushort> stack = new Stack<ushort>(16);
+        //ushort SP = 0;
         // keys 
         bool[] keys = new bool[16];
         // flag
         bool drawFlag = true;
 
-        private void PushToStack(ushort value)
-        {
-            stack[SP] = value;
-            SP++;
-        }
-        private ushort PopFromStack()
-        {
-            return stack[--SP];
-        }
-
         public void Reset()
         {
             PC = 0x200;
-            opcode = I = SP = 0;
+            opcode = I = 0;
+            stack.Clear();
 
             // Clear display
             for (int i = 0; i < 2048; ++i)
@@ -71,7 +63,6 @@ namespace chip_8_emulator
             {
                 keys[i] = false;
                 V[i] = 0;
-                stack[i] = 0;
             }
 
             // Clear memory
@@ -106,6 +97,7 @@ namespace chip_8_emulator
             // Fetch Opcode
             opcode = (ushort)(mmu[PC] << 8 | mmu[PC + 1]);
             // Decode Opcode
+            // Execute Opcode
             // as is in https://en.wikipedia.org/wiki/CHIP-8#Opcode_table
             switch (opcode & 0xF000)
             {
@@ -118,7 +110,7 @@ namespace chip_8_emulator
                             PC += 2;
                             break;
                         case 0x00EE:
-                            PC = PopFromStack();
+                            PC = stack.Pop();
                             PC += 2;
                             break;
                     }
@@ -127,31 +119,77 @@ namespace chip_8_emulator
                     PC = (ushort)(opcode & 0x0FFF);
                     break;
                 case 0x2000:
-                    PushToStack(PC);
+                    stack.Push(PC);
                     PC = (ushort)(opcode & 0x0FFF);
                     break;
                 case 0x3000:
-                    PC += (ushort)(V[(opcode & 0x0F00) >> 8] == (opcode & 0x00FF) ? 4 : 2);
+                    PC += (ushort)(V[opcode.gb(2)] == (opcode & 0x00FF) ? 4 : 2);
                     break;
                 case 0x4000:
-                    PC += (ushort)(V[(opcode & 0x0F00) >> 8] != (opcode & 0x00FF) ? 4 : 2);
+                    PC += (ushort)(V[opcode.gb(2)] != (opcode & 0x00FF) ? 4 : 2);
                     break;
                 case 0x5000:
-                    PC += (ushort)(V[(opcode & 0x0F00) >> 8] == V[(opcode & 0x00F0)>>4] ? 4 : 2);
+                    PC += (ushort)(V[opcode.gb(2)] == V[opcode.gb(1)] ? 4 : 2);
                     break;
                 case 0x6000:
-                    V[(opcode & 0x0F00) >> 8] = (byte)(opcode & 0x00FF);
+                    V[opcode.gb(2)] = (byte)(opcode & 0x00FF);
                     PC += 2;
                     break;
                 case 0x7000:
-                    V[(opcode & 0x0F00) >> 8] += (byte)(opcode & 0x00FF);
+                    V[opcode.gb(2)] += (byte)(opcode & 0x00FF);
                     PC += 2;
                     break;
                 case 0x8000:
-
+                    switch (opcode & 0x000F)
+                    {
+                        case 0x0000:
+                            V[opcode.gb(2)] = V[opcode.gb(1)];
+                            PC += 2;
+                            break;
+                        case 0x0001:
+                            V[opcode.gb(2)] |= V[opcode.gb(1)];
+                            PC += 2;
+                            break;
+                        case 0x0002:
+                            V[opcode.gb(2)] &= V[opcode.gb(1)];
+                            PC += 2;
+                            break;
+                        case 0x0003:
+                            V[opcode.gb(2)] ^= V[opcode.gb(1)];
+                            PC += 2;
+                            break;
+                        case 0x0004:
+                            int result = V[opcode.gb(2)] + V[opcode.gb(1)];
+                            V[opcode.gb(2)] = (byte)result;
+                            V[0xF] = (byte)(result > 0xFF ? 1 : 0);
+                            PC += 2;
+                            break;
+                        case 0x0005:
+                            int result2 = V[opcode.gb(2)] - V[opcode.gb(1)];
+                            V[opcode.gb(2)] = (byte)result2;
+                            V[0xF] = (byte)(result2 < 0 ? 1 : 0);
+                            PC += 2;
+                            break;
+                        case 0x0006:
+                            V[0xF] = (byte)(V[opcode.gb(2)] & 0x1);
+                            V[opcode.gb(2)] >>= 1;
+                            PC += 2;
+                            break;
+                        case 0x0007:
+                            int result3 = V[opcode.gb(1)] - V[opcode.gb(2)];
+                            V[opcode.gb(2)] = (byte)result3;
+                            V[0xF] = (byte)(result3 < 0 ? 0 : 1);
+                            PC += 2;
+                            break;
+                        case 0x000E:
+                            V[0xF] = (byte)(V[opcode.gb(2)] >> 7);
+                            V[opcode.gb(2)] <<= 1;
+                            PC += 2;
+                            break;
+                    }
                     break;
                 case 0x9000:
-                    PC += (ushort)(V[(opcode & 0x0F00) >> 8] != V[(opcode & 0x00F0)>>4] ? 4 : 2);
+                    PC += (ushort)(V[opcode.gb(2)] != V[opcode.gb(1)] ? 4 : 2);
                     break;
                 case 0xA000:
                     I = (ushort)(opcode & 0x0FFF);
@@ -161,24 +199,108 @@ namespace chip_8_emulator
                     PC = (ushort)((opcode & 0x0FFF) + V[0]);
                     break;
                 case 0xC000:
-                    V[(opcode & 0x0F00) >> 8] = (byte)(rnd.Next(0xFF) & (opcode & 0x00FF));
+                    V[opcode.gb(2)] = (byte)(rnd.Next(0xFF) & (opcode & 0x00FF));
+                    PC += 2;
                     break;
                 case 0xD000:
-
+                    Draw();
+                    drawFlag = true;
+                    PC += 2;
                     break;
                 case 0xE000:
-
+                    switch (opcode & 0x00FF)
+                    {
+                        case 0x009E:
+                            PC += (ushort)(keys[V[opcode.gb(2)]] ? 4 : 2);
+                            break;
+                        case 0x00A1:
+                            PC += (ushort)(keys[V[opcode.gb(2)]] ? 2 : 4);
+                            break;
+                    }
                     break;
                 case 0xF000:
+                    switch(opcode & 0x00FF)
+                    {
+                        case 0x0007:
+                            V[opcode.gb(2)] = delay_timer;
+                            PC += 2;
+                            break;
+                        case 0x000A:
 
+                            bool isAnyKeyPressed = false;
+                            for (int i = 0; i < 16; i++)
+                            {
+                                if (keys[i])
+                                {
+                                    V[opcode.gb(2)] = (byte)i;
+                                    isAnyKeyPressed = true;
+                                    break;
+                                }
+                            }
+                            if (!isAnyKeyPressed)
+                                return;
+
+                            PC += 2;
+                            break;
+                        case 0x0015:
+                            delay_timer = V[opcode.gb(2)];
+                            PC += 2;
+                            break;
+                        case 0x0018:
+                            sound_timer = V[opcode.gb(2)];
+                            PC += 2;
+                            break;
+                        case 0x001E:
+                            if (I + V[opcode.gb(2)] > 0xFFF)
+                                V[0xF] = 1;
+                            else
+                                V[0xF] = 0;
+                            I += V[opcode.gb(2)];
+                            PC += 2;
+                            break;
+                        case 0x0029:
+                            I = (ushort)(V[opcode.gb(2)] * 0x5);
+                            PC += 2;
+                            break;
+                        case 0x0033:
+                            mmu[I] = (byte)(V[opcode.gb(2)] / 100);
+                            mmu[I + 1] = (byte)(V[opcode.gb(2)] / 10 % 10);
+                            mmu[I + 2] = (byte)(V[opcode.gb(2)] % 100 % 10);
+                            PC += 2;
+                            break;
+                        case 0x0055:
+                            for (int i = 0; i <= opcode.gb(2); i++)
+                                mmu[I + i] = V[i];
+
+                            // On the original interpreter, when the operation is done, I = I + X + 1.
+                            I += (ushort)(opcode.gb(2) + 1);
+                            PC += 2;
+                            break;
+                        case 0x0065:
+                            for (int i = 0; i <= opcode.gb(2); i++)
+                                V[i] = mmu[I + i];
+
+                            // On the original interpreter, when the operation is done, I = I + X + 1.
+                            I += (ushort)(opcode.gb(2) + 1);
+                            PC += 2;
+                            break;
+                    }
                     break;
             }
-            // Execute Opcode
 
             // Update timers
             if (delay_timer > 0) delay_timer--;
             if (sound_timer == 1) Console.WriteLine("\a"); // beep
-            if (sound_timer > 0) sound_timer--; 
+            if (sound_timer > 0) sound_timer--;
         }
     }
+    public static class Extensions
+    {
+        public static byte gb(this ushort value, int pos)
+        {
+            int mask = 0x000F << (pos * 4);
+            return (byte)((value & mask) >> (pos * 4));
+        }
+    }
+
 }
