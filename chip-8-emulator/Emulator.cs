@@ -128,14 +128,14 @@ namespace chip_8_emulator
             switch (opcode & 0xF000)
             {
                 case 0x0000:
-                    switch (opcode)
+                    switch (opcode & 0x000F)
                     {
-                        case 0x00E0:
+                        case 0x0000:
                             screen = new bool[64 * 32];
                             drawFlag = true;
                             PC += 2;
                             break;
-                        case 0x00EE:
+                        case 0x000E:
                             PC = stack.Pop();
                             PC += 2;
                             break;
@@ -185,15 +185,19 @@ namespace chip_8_emulator
                             PC += 2;
                             break;
                         case 0x0004:
-                            int result = V[opcode.gb(2)] + V[opcode.gb(1)];
-                            V[opcode.gb(2)] = (byte)result;
-                            V[0xF] = (byte)(result > 0xFF ? 1 : 0);
+                            if (V[opcode.gb(2)] + V[opcode.gb(1)] > 0xFF)
+                                V[0xF] = 1;
+                            else
+                                V[0xF] = 0;
+                            V[opcode.gb(2)] += V[opcode.gb(1)];
                             PC += 2;
                             break;
                         case 0x0005:
-                            int result2 = V[opcode.gb(2)] - V[opcode.gb(1)];
-                            V[opcode.gb(2)] = (byte)result2;
-                            V[0xF] = (byte)(result2 < 0 ? 1 : 0);
+                            if (V[opcode.gb(2)] < V[opcode.gb(1)])
+                                V[0xF] = 0;
+                            else
+                                V[0xF] = 1;
+                            V[opcode.gb(2)] -= V[opcode.gb(1)];
                             PC += 2;
                             break;
                         case 0x0006:
@@ -202,9 +206,11 @@ namespace chip_8_emulator
                             PC += 2;
                             break;
                         case 0x0007:
-                            int result3 = V[opcode.gb(1)] - V[opcode.gb(2)];
-                            V[opcode.gb(2)] = (byte)result3;
-                            V[0xF] = (byte)(result3 < 0 ? 0 : 1);
+                            if (V[opcode.gb(2)] > V[opcode.gb(1)])  // VY-VX
+                                V[0xF] = 0; // there is a borrow
+                            else
+                                V[0xF] = 1;
+                            V[opcode.gb(2)] = (byte)(V[opcode.gb(1)] - V[opcode.gb(2)]);
                             PC += 2;
                             break;
                         case 0x000E:
@@ -260,7 +266,7 @@ namespace chip_8_emulator
                                 {
                                     V[opcode.gb(2)] = (byte)i;
                                     isAnyKeyPressed = true;
-                                    break;
+                                    //break;
                                 }
                             }
                             if (!isAnyKeyPressed)
