@@ -1,7 +1,6 @@
 ﻿using SFML.Graphics;
 using SFML.System;
 using System;
-using System.Linq;
 using SFML.Window;
 using System.Collections;
 
@@ -17,7 +16,7 @@ namespace chip_8_emulator
             Closed += Game_Closed;
             KeyPressed += Game_KeyPressed;
             KeyReleased += Game_KeyReleased;
-            SetFramerateLimit(480);
+            SetFramerateLimit(60);
             
         }
 
@@ -69,15 +68,18 @@ namespace chip_8_emulator
             Clock deltaClock = new Clock();
             DeltaTime = deltaClock.Restart();
             emu.Reset();
-            emu.LoadApp("pong.rom");
+            emu.LoadApp("connect4.rom");
 
             while (IsOpen)
             {
                 DeltaTime = deltaClock.Restart();
                 DispatchEvents();
-                Update();
+
+                emu.Step();
                 if (emu.drawFlag)
                 {
+                    Clear(Color.Black);
+                    //DrawScreenBlur();
                     DrawScreen();
                     emu.drawFlag = false;
                 }
@@ -86,14 +88,9 @@ namespace chip_8_emulator
 
         }
 
-        private void Update()
-        {
-            emu.Step();
-        }
-
-        const int lastScreensHistorySize = 12;
+        const int lastScreensHistorySize = 6;
         Queue screensW = new Queue(lastScreensHistorySize);
-        private void DrawScreen()
+        private void DrawScreenBlur()
         {
             Clear(Color.Black);
 
@@ -123,18 +120,27 @@ namespace chip_8_emulator
                 tex.Dispose();
                 img.Dispose();
             }
+        }
+        private void DrawScreen()
+        {
 
-            //Image img = new Image(colors);
-            //Texture tex = new Texture(img);
-            //Sprite s = new Sprite(tex) 
-            //{ 
-            //    Scale = new Vector2f(10, 10),
-            //    Color = new Color(255, 255, 255, 255)
-            //};
-            //Draw(s);
-            //s.Dispose();
-            //tex.Dispose();
-            //img.Dispose();
+            Color[,] colors = new Color[64, 32];
+            for (int x = 0; x < 64; x++)
+                for (int y = 0; y < 32; y++)
+                    colors[x, y] = emu.screen[y * 64 + x] ? Color.White : Color.Transparent;
+
+
+            Image img = new Image(colors);
+            Texture tex = new Texture(img);
+            Sprite s = new Sprite(tex) 
+            { 
+                Scale = new Vector2f(10, 10),
+                Color = new Color(255, 255, 255, 255)
+            };
+            Draw(s);
+            s.Dispose();
+            tex.Dispose();
+            img.Dispose();
         }
     }
     class Program
