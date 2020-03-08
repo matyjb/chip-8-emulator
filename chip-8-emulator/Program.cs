@@ -3,6 +3,7 @@ using SFML.System;
 using System;
 using System.Linq;
 using SFML.Window;
+using System.Collections;
 
 namespace chip_8_emulator
 {
@@ -77,7 +78,6 @@ namespace chip_8_emulator
                 Update();
                 if (emu.drawFlag)
                 {
-                    Clear(Color.Black);
                     DrawScreen();
                     emu.drawFlag = false;
                 }
@@ -91,20 +91,50 @@ namespace chip_8_emulator
             emu.Step();
         }
 
+        const int lastScreensHistorySize = 12;
+        Queue screensW = new Queue(lastScreensHistorySize);
         private void DrawScreen()
         {
+            Clear(Color.Black);
+
             Color[,] colors = new Color[64, 32];
             for (int x = 0; x < 64; x++)
                 for (int y = 0; y < 32; y++)
-                    colors[x, y] = emu.screen[y * 64 + x] ? Color.White : Color.Black;
-                
-            Image img = new Image(colors);
-            Texture tex = new Texture(img);
-            Sprite s = new Sprite(tex) { Scale = new Vector2f(10, 10) };
-            Draw(s);
-            s.Dispose();
-            tex.Dispose();
-            img.Dispose();
+                    colors[x, y] = emu.screen[y * 64 + x] ? Color.White : Color.Transparent;
+
+            if(screensW.Count == lastScreensHistorySize)
+                screensW.Dequeue();
+            screensW.Enqueue(colors);
+
+            object[] screens = screensW.ToArray();
+            for (int i = 0; i < screens.Length; i++)
+            {
+                Color[,] screen = (Color[,])screens[i];
+                Image img = new Image(screen);
+                Texture tex = new Texture(img);
+                byte a = (byte)(255 / lastScreensHistorySize * (i + 1));
+                Sprite s = new Sprite(tex)
+                {
+                    Scale = new Vector2f(10, 10),
+                    Color = new Color(255, 255, 255, a)
+                };
+                Draw(s);
+                s.Dispose();
+                tex.Dispose();
+                img.Dispose();
+            }
+
+            //Image img = new Image(colors);
+            //Texture tex = new Texture(img);
+            //Sprite s = new Sprite(tex) 
+            //{ 
+            //    Scale = new Vector2f(10, 10),
+            //    Color = new Color(255, 255, 255, 255)
+            //};
+            //Draw(s);
+            //s.Dispose();
+            //tex.Dispose();
+            //img.Dispose();
         }
     }
     class Program
