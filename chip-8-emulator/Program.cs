@@ -96,7 +96,7 @@ namespace chip_8_emulator
             Color[,] colors = new Color[64, 32];
             for (int x = 0; x < 64; x++)
                 for (int y = 0; y < 32; y++)
-                    colors[x, y] = emu.screen[x, y] ? Color.White : Color.Black;
+                    colors[x, y] = emu.screen[y * 64 + x] ? Color.White : Color.Black;
                 
             Image img = new Image(colors);
             Texture tex = new Texture(img);

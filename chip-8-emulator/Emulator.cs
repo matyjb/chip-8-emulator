@@ -37,7 +37,7 @@ namespace chip_8_emulator
         ushort I = 0; //index register
         ushort PC = 0; // program counter
         // gpu
-        public byte[] screen = new byte[64 * 32];
+        public bool[] screen = new bool[64 * 32];
         // timers
         byte delay_timer = 0;
         byte sound_timer = 0;
@@ -57,8 +57,7 @@ namespace chip_8_emulator
             stack.Clear();
 
             // Clear display
-            screen = new bool[64,32];
-                screen[i] = 0;
+            screen = new bool[64 * 32];
 
             for (int i = 0; i < 16; ++i)
             {
@@ -68,7 +67,6 @@ namespace chip_8_emulator
 
             // Clear memory
             mmu = new byte[0x1000];
-                mmu[i] = 0;
 
             // Load fontset
             for (int i = 0; i < 80; ++i)
@@ -96,11 +94,15 @@ namespace chip_8_emulator
                 {
                     if ((pixel & (0x80 >> xline)) != 0)
                     {
-                        if (screen[(x + xline + ((y + yline) * 64))] == 1)
+                        int sc = x + xline + ((y + yline) * 64);
+                        if(sc < screen.Length)
                         {
-                            V[0xF] = 1;
+                            if (screen[sc])
+                            {
+                                V[0xF] = 1;
+                            }
+                            screen[sc] = !screen[sc];
                         }
-                        screen[x + xline + ((y + yline) * 64)] ^= 1;
                     }
                 }
             }
@@ -129,7 +131,7 @@ namespace chip_8_emulator
                     switch (opcode)
                     {
                         case 0x00E0:
-                            screen = new byte[64 * 32];
+                            screen = new bool[64 * 32];
                             drawFlag = true;
                             PC += 2;
                             break;
