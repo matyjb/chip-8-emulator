@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -45,9 +46,9 @@ namespace chip_8_emulator
         Stack<ushort> stack = new Stack<ushort>(16);
         //ushort SP = 0;
         // keys 
-        bool[] keys = new bool[16];
+        public bool[] keys = new bool[16];
         // flag
-        bool drawFlag = true;
+        public bool drawFlag = true;
 
         public void Reset()
         {
@@ -80,17 +81,40 @@ namespace chip_8_emulator
             // Clear screen once
             drawFlag = true;
         }
-        public void Draw()
+        public void Draw(ushort opcode)
         {
+            ushort x = V[opcode.gb(2)];
+            ushort y = V[opcode.gb(1)];
+            ushort height = opcode.gb(0);
+            ushort pixel;
 
-        }
-        public void SetKeys(Keys keys)
-        {
-
+            V[0xF] = 0;
+            for (int yline = 0; yline < height; yline++)
+            {
+                pixel = mmu[I + yline];
+                for (int xline = 0; xline < 8; xline++)
+                {
+                    if ((pixel & (0x80 >> xline)) != 0)
+                    {
+                        if (screen[(x + xline + ((y + yline) * 64))] == 1)
+                        {
+                            V[0xF] = 1;
+                        }
+                        screen[x + xline + ((y + yline) * 64)] ^= 1;
+                    }
+                }
+            }
         }
         public void LoadApp(string filepath)
         {
-
+            FileStream sr = new FileStream(filepath, FileMode.Open);
+            int b, i = 0;
+            while ((b = sr.ReadByte()) != -1)
+            {
+                mmu[i + 512] = Convert.ToByte(b);
+                i++;
+            }
+            sr.Close();
         }
         public void Step()
         {
@@ -203,7 +227,7 @@ namespace chip_8_emulator
                     PC += 2;
                     break;
                 case 0xD000:
-                    Draw();
+                    Draw(opcode);
                     drawFlag = true;
                     PC += 2;
                     break;
