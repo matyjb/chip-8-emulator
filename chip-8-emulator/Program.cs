@@ -11,12 +11,13 @@ namespace chip_8_emulator
     {
         private Time DeltaTime { get; set; }
         Emulator emu = new Emulator();
-        public Game(string title) : base(new VideoMode(64, 32), title)
+        public Game(string title) : base(new VideoMode(640, 320), title)
         {
             Closed += Game_Closed;
             KeyPressed += Game_KeyPressed;
             KeyReleased += Game_KeyReleased;
-            SetFramerateLimit(60);
+            SetFramerateLimit(480);
+            
         }
 
         private void Game_KeyReleased(object sender, KeyEventArgs e)
@@ -79,8 +80,8 @@ namespace chip_8_emulator
                     Clear(Color.Black);
                     DrawScreen();
                     emu.drawFlag = false;
-                Display();
                 }
+                Display();
             }
 
         }
@@ -95,11 +96,11 @@ namespace chip_8_emulator
             Color[,] colors = new Color[64, 32];
             for (int x = 0; x < 64; x++)
                 for (int y = 0; y < 32; y++)
-                    colors[x, y] = emu.screen[y * 64 + x] == 0 ? Color.Black : Color.White;
+                    colors[x, y] = emu.screen[x, y] ? Color.White : Color.Black;
                 
             Image img = new Image(colors);
             Texture tex = new Texture(img);
-            Sprite s = new Sprite(tex);
+            Sprite s = new Sprite(tex) { Scale = new Vector2f(10, 10) };
             Draw(s);
             s.Dispose();
             tex.Dispose();

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -57,7 +57,7 @@ namespace chip_8_emulator
             stack.Clear();
 
             // Clear display
-            for (int i = 0; i < 2048; ++i)
+            screen = new bool[64,32];
                 screen[i] = 0;
 
             for (int i = 0; i < 16; ++i)
@@ -67,7 +67,7 @@ namespace chip_8_emulator
             }
 
             // Clear memory
-            for (int i = 0; i < 4096; ++i)
+            mmu = new byte[0x1000];
                 mmu[i] = 0;
 
             // Load fontset
@@ -243,7 +243,7 @@ namespace chip_8_emulator
                     }
                     break;
                 case 0xF000:
-                    switch(opcode & 0x00FF)
+                    switch (opcode & 0x00FF)
                     {
                         case 0x0007:
                             V[opcode.gb(2)] = delay_timer;
@@ -314,7 +314,7 @@ namespace chip_8_emulator
 
             // Update timers
             if (delay_timer > 0) delay_timer--;
-            if (sound_timer == 1) Console.WriteLine("\a"); // beep
+            if (sound_timer == 1) Console.Beep();
             if (sound_timer > 0) sound_timer--;
         }
     }
